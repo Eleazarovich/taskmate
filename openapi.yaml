@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: |
     HTTP contract used by the Taskmate frontend.
-    It is implemented by frontend /src/lib/services/apiService.ts and is
+    It is implemented by frontend/src/lib/services/apiService.ts and is
     configured with NEXT_PUBLIC_API_URL.
     Sign-up and login establish an http-only session cookie and return an
     opaque bearer access token. There is no standalone

@@ -79,15 +79,12 @@ documentation is available at <http://localhost:8000/docs>.
 Open a second terminal and run:
 
 ```bash
-cd "frontend "
+cd frontend
 npm install
 npm run dev
 ```
 
 The web app starts at <http://localhost:4028>.
-
-The frontend directory is currently named `frontend ` with a trailing space,
-so keep the quotes in the `cd` command.
 
 ### Run as one container
 
@@ -159,7 +156,7 @@ uv run pytest
 
 ### Frontend
 
-Run these commands from `frontend `:
+Run these commands from `frontend`:
 
 ```bash
 npm run type-check
@@ -176,7 +173,7 @@ statistics endpoints. The API contract is defined in [`openapi.yaml`](openapi.ya
 ```text
 .
 ├── backend/              FastAPI application, persistence, and tests
-├── frontend /            Next.js application and UI components
+├── frontend/             Next.js application and UI components
 ├── openapi.yaml          Checked-in HTTP API contract
 ├── _docs/                Product and MVP documentation
 ├── Makefile              Common backend development commands
@@ -187,7 +184,7 @@ The backend and frontend each retain their own README with more local
 implementation detail:
 
 - [`backend/README.md`](backend/README.md)
-- [`frontend /README.md`](frontend%20/README.md)
+- [`frontend/README.md`](frontend/README.md)
 
 ## Contributing
 

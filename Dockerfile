@@ -4,10 +4,10 @@ FROM node:22-alpine AS frontend-builder
 
 WORKDIR /app
 
-COPY ["frontend /package.json", "./"]
+COPY ["frontend/package.json", "./"]
 RUN npm install
 
-COPY ["frontend /", "./"]
+COPY ["frontend/", "./"]
 
 # An empty value makes the browser call the backend on the current origin.
 # Pass --build-arg NEXT_PUBLIC_API_URL=... for a separately hosted API.

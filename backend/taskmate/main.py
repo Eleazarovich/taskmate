@@ -76,5 +76,5 @@ app.include_router(stats.router)
 # The production image copies the frontend's static export here. Keeping the
 # mount optional preserves the backend-only development and test workflow.
 frontend_dir = Path(__file__).resolve().parents[2] / "frontend"
-if frontend_dir.is_dir():
+if (frontend_dir / "index.html").is_file():
     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
