@@ -8,8 +8,8 @@ info:
     frontend /src/lib/types.ts. The checked-in frontend currently uses an
     in-memory mock service, so these are the HTTP mappings for that service
     boundary rather than literal URLs currently present in the frontend.
-    Sign-up and login establish an http-only session cookie because the auth
-    result contains a User but no access token. There is no standalone
+    Sign-up and login establish an http-only session cookie and return an
+    opaque bearer access token. There is no standalone
     get-task operation in the service interface; task detail lookup uses the
     board list and board-task list operations.
 servers:
@@ -53,6 +53,7 @@ paths:
                   rating: 0
                   createdAt: '2026-09-13T10:00:00Z'
                   updatedAt: '2026-09-13T10:00:00Z'
+                accessToken: eyJ-demo-token
         '409':
           description: An account with the email already exists.
           content:
@@ -96,6 +97,7 @@ paths:
                   rating: 42
                   createdAt: '2026-08-01T10:00:00Z'
                   updatedAt: '2026-09-11T19:00:00Z'
+                accessToken: eyJ-demo-token
         '401':
           description: Invalid credentials.
           content:
@@ -116,6 +118,7 @@ paths:
       security:
         - {}
         - sessionCookie: []
+        - bearerToken: []
       responses:
         '204':
           description: Session invalidated. The response has no body.
@@ -131,6 +134,7 @@ paths:
       security:
         - {}
         - sessionCookie: []
+        - bearerToken: []
       responses:
         '200':
           description: Current user, or a JSON null value when unauthenticated.
@@ -150,6 +154,7 @@ paths:
       description: Returns only boards owned by the authenticated user.
       security:
         - sessionCookie: []
+        - bearerToken: []
       responses:
         '200':
           description: The user's boards.
@@ -168,6 +173,7 @@ paths:
       description: Creates a board owned by the current user. The fixed six workflow stages are implicit and require no request data.
       security:
         - sessionCookie: []
+        - bearerToken: []
       requestBody:
         required: true
         content:
@@ -195,6 +201,7 @@ paths:
       description: Deletes the board and its tasks. The board must belong to the authenticated user.
       security:
         - sessionCookie: []
+        - bearerToken: []
       responses:
         '204':
           description: Board deleted. The response has no body.
@@ -212,6 +219,7 @@ paths:
       description: Returns the tasks for the requested board, ordered by position within their stage.
       security:
         - sessionCookie: []
+        - bearerToken: []
       responses:
         '200':
           description: Tasks belonging to the board.
@@ -232,6 +240,7 @@ paths:
       description: Creates a task in the board's Pawn stage. Stage and initial position are assigned by the server.
       security:
         - sessionCookie: []
+        - bearerToken: []
       requestBody:
         required: true
         content:
@@ -261,6 +270,7 @@ paths:
       description: Updates editable task fields. Stage, position, board, and creation time are server-controlled.
       security:
         - sessionCookie: []
+        - bearerToken: []
       requestBody:
         required: true
         content:
@@ -287,6 +297,7 @@ paths:
       description: Deletes a task without changing the user's rating.
       security:
         - sessionCookie: []
+        - bearerToken: []
       responses:
         '204':
           description: Task deleted. The response has no body.
@@ -311,6 +322,7 @@ paths:
         same stage is accepted as a no-op with a zero rating delta.
       security:
         - sessionCookie: []
+        - bearerToken: []
       requestBody:
         required: true
         content:
@@ -354,6 +366,7 @@ paths:
       description: Changes only the task's position within its current stage and does not affect rating.
       security:
         - sessionCookie: []
+        - bearerToken: []
       requestBody:
         required: true
         content:
@@ -377,6 +390,7 @@ paths:
       description: Returns global rating information and aggregate task statistics for the authenticated user.
       security:
         - sessionCookie: []
+        - bearerToken: []
       responses:
         '200':
           description: Player profile and statistics.
@@ -393,6 +407,11 @@ components:
       in: cookie
       name: taskmate_session
       description: Http-only session cookie issued by sign-up or login.
+    bearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: Opaque bearer token returned by sign-up or login.
   headers:
     SessionCookie:
       description: Http-only session cookie issued by the backend.
@@ -686,6 +705,9 @@ components:
         error:
           type: string
           description: Present when authentication fails.
+        accessToken:
+          type: string
+          description: Opaque bearer token returned on successful authentication.
     PlayerStats:
       type: object
       additionalProperties: false
