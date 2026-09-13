@@ -156,6 +156,17 @@ TASKMATE_DATABASE_URL=postgresql://taskmate:password@localhost:5432/taskmate \
 If the frontend is hosted on a different origin, set both
 `NEXT_PUBLIC_API_URL` and `TASKMATE_CORS_ORIGINS` accordingly.
 
+## CI/CD
+
+GitHub Actions runs the backend and frontend test jobs in parallel, then builds
+the Docker Compose stack and runs the integration and Playwright suites against
+it. On pushes to `main`, the workflow triggers Render with the
+`RENDER_DEPLOY_HOOK_URL` repository secret and polls `<service-url>/health`
+until it returns HTTP 200.
+
+Configure `RENDER_SERVICE_URL` as a repository variable alongside the deploy
+hook secret so the post-deploy health check knows which live service to poll.
+
 ## Development commands
 
 ### Backend

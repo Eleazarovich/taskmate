@@ -1,0 +1,216 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --locked
+
+      - name: Run backend tests
+        working-directory: backend
+        run: uv run pytest
+
+  frontend-tests:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Type-check frontend
+        working-directory: frontend
+        run: npm run type-check
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
+
+  compose-tests:
+    name: Compose integration and E2E tests
+    runs-on: ubuntu-latest
+    needs:
+      - backend-tests
+      - frontend-tests
+
+    env:
+      COMPOSE_PROJECT_NAME: taskmate-ci
+      TASKMATE_APP_PORT: '8001'
+      TASKMATE_API_URL: http://127.0.0.1:8001
+      TASKMATE_E2E_BASE_URL: http://127.0.0.1:8001
+      TASKMATE_E2E_EXTERNAL_STACK: 'true'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --locked
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install E2E dependencies
+        working-directory: e2e
+        run: npm ci
+
+      - name: Install Playwright browser
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Docker Compose stack
+        run: docker compose build
+
+      - name: Start Docker Compose stack
+        run: docker compose up --detach --wait
+
+      - name: Run backend integration tests
+        working-directory: backend
+        run: uv run pytest tests/integration -m integration
+
+      - name: Run end-to-end tests
+        working-directory: e2e
+        run: npm test
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          if-no-files-found: ignore
+
+      - name: Stop Docker Compose stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
+
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: compose-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: ${{ vars.RENDER_SERVICE_URL }}
+
+    steps:
+      - name: Trigger Render deployment
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
+            echo '::error::The RENDER_DEPLOY_HOOK_URL repository secret is not configured.'
+            exit 1
+          fi
+
+          status_code="$(curl \
+            --silent \
+            --show-error \
+            --output /dev/null \
+            --write-out '%{http_code}' \
+            --request POST \
+            "$RENDER_DEPLOY_HOOK_URL")"
+
+          if [[ "$status_code" != 2* ]]; then
+            echo "::error::Render deploy hook returned HTTP $status_code."
+            exit 1
+          fi
+
+          echo "Render deployment triggered (HTTP $status_code)."
+
+      - name: Wait for live service health
+        env:
+          RENDER_SERVICE_URL: ${{ vars.RENDER_SERVICE_URL }}
+          RENDER_HEALTHCHECK_PATH: /health
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$RENDER_SERVICE_URL" ]]; then
+            echo '::error::The RENDER_SERVICE_URL repository variable is not configured.'
+            exit 1
+          fi
+
+          health_url="${RENDER_SERVICE_URL%/}${RENDER_HEALTHCHECK_PATH}"
+          max_attempts=30
+
+          for attempt in $(seq 1 "$max_attempts"); do
+            status_code="$(curl \
+              --silent \
+              --show-error \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --connect-timeout 10 \
+              --max-time 20 \
+              "$health_url" || true)"
+
+            if [[ "$status_code" == '200' ]]; then
+              echo "Render service is healthy at $health_url."
+              exit 0
+            fi
+
+            echo "Health check attempt $attempt/$max_attempts returned HTTP $status_code; retrying in 10 seconds."
+            if [[ "$attempt" -lt "$max_attempts" ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "::error::Render service did not return HTTP 200 from $health_url within the timeout."
+          exit 1

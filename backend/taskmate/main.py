@@ -50,6 +50,13 @@ app.add_middleware(
 )
 
 
+@app.get("/health", include_in_schema=False)
+def health() -> dict[str, str]:
+    """Return a lightweight liveness response for container and deploy checks."""
+
+    return {"status": "ok"}
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
     if isinstance(exc.detail, dict):
