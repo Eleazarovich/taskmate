@@ -1,0 +1,768 @@
+openapi: 3.0.3
+info:
+  title: Taskmate API
+  version: 1.0.0
+  description: |
+    HTTP contract for the backend expected by the Taskmate frontend.
+    It is derived from frontend /src/lib/services/IChessKanbanService.ts and
+    frontend /src/lib/types.ts. The checked-in frontend currently uses an
+    in-memory mock service, so these are the HTTP mappings for that service
+    boundary rather than literal URLs currently present in the frontend.
+    Sign-up and login establish an http-only session cookie because the auth
+    result contains a User but no access token. There is no standalone
+    get-task operation in the service interface; task detail lookup uses the
+    board list and board-task list operations.
+servers:
+  - url: http://localhost:8000
+    description: Local backend
+tags:
+  - name: Authentication
+  - name: Boards
+  - name: Tasks
+  - name: Player statistics
+paths:
+  /auth/signup:
+    post:
+      tags: [Authentication]
+      operationId: signUp
+      summary: Create an account
+      description: Creates a user, starts an authenticated session, and returns the new user.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '200':
+          description: Account created and session established.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/SessionCookie'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+              example:
+                success: true
+                user:
+                  id: user-123
+                  name: Ada Lovelace
+                  email: ada@example.com
+                  rating: 0
+                  createdAt: '2026-09-13T10:00:00Z'
+                  updatedAt: '2026-09-13T10:00:00Z'
+        '409':
+          description: An account with the email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+              example:
+                success: false
+                error: An account with this email already exists.
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /auth/login:
+    post:
+      tags: [Authentication]
+      operationId: login
+      summary: Sign in
+      description: Authenticates with an email and password and starts an authenticated session.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Credentials accepted and session established.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/SessionCookie'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+              example:
+                success: true
+                user:
+                  id: user-001
+                  name: Kasparov Dev
+                  email: kasparov@chesskanban.app
+                  rating: 42
+                  createdAt: '2026-08-01T10:00:00Z'
+                  updatedAt: '2026-09-11T19:00:00Z'
+        '401':
+          description: Invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+              example:
+                success: false
+                error: Invalid credentials.
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      operationId: logout
+      summary: Sign out
+      description: Invalidates the current session. The call is safe when no session exists.
+      security:
+        - {}
+        - sessionCookie: []
+      responses:
+        '204':
+          description: Session invalidated. The response has no body.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/ClearedSessionCookie'
+  /auth/me:
+    get:
+      tags: [Authentication]
+      operationId: getCurrentUser
+      summary: Get the current user
+      description: Returns the signed-in user, or null when there is no active session.
+      security:
+        - {}
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Current user, or a JSON null value when unauthenticated.
+          content:
+            application/json:
+              schema:
+                nullable: true
+                allOf:
+                  - $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /boards:
+    get:
+      tags: [Boards]
+      operationId: getBoards
+      summary: List the current user's boards
+      description: Returns only boards owned by the authenticated user.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The user's boards.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Board'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Boards]
+      operationId: createBoard
+      summary: Create a board
+      description: Creates a board owned by the current user. The fixed six workflow stages are implicit and require no request data.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBoardRequest'
+      responses:
+        '201':
+          description: Board created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /boards/{boardId}:
+    parameters:
+      - $ref: '#/components/parameters/BoardId'
+    delete:
+      tags: [Boards]
+      operationId: deleteBoard
+      summary: Delete a board
+      description: Deletes the board and its tasks. The board must belong to the authenticated user.
+      security:
+        - sessionCookie: []
+      responses:
+        '204':
+          description: Board deleted. The response has no body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /boards/{boardId}/tasks:
+    parameters:
+      - $ref: '#/components/parameters/BoardId'
+    get:
+      tags: [Tasks]
+      operationId: getTasksByBoard
+      summary: List a board's tasks
+      description: Returns the tasks for the requested board, ordered by position within their stage.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Tasks belonging to the board.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Tasks]
+      operationId: createTask
+      summary: Create a task
+      description: Creates a task in the board's Pawn stage. Stage and initial position are assigned by the server.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created in the Pawn stage.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /tasks/{taskId}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    patch:
+      tags: [Tasks]
+      operationId: updateTask
+      summary: Update task details
+      description: Updates editable task fields. Stage, position, board, and creation time are server-controlled.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Updated task.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Tasks]
+      operationId: deleteTask
+      summary: Delete a task
+      description: Deletes a task without changing the user's rating.
+      security:
+        - sessionCookie: []
+      responses:
+        '204':
+          description: Task deleted. The response has no body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks/{taskId}/move:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    patch:
+      tags: [Tasks]
+      operationId: moveTask
+      summary: Move a task to an adjacent stage
+      description: |
+        Moves a task one stage forward or backward and changes its position in
+        the destination stage. A forward move adds one rating point, a backward
+        move removes one point without allowing the rating below zero, and an
+        invalid non-adjacent move leaves both task and rating unchanged.
+
+        Moving from Queen to King sets isVictory to true. Moving within the
+        same stage is accepted as a no-op with a zero rating delta.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveTaskRequest'
+      responses:
+        '200':
+          description: Move result, including business-rule failures represented by success=false.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveResult'
+              examples:
+                successfulForwardMove:
+                  value:
+                    success: true
+                    ratingDelta: 1
+                    isVictory: false
+                    newRating: 43
+                invalidMove:
+                  value:
+                    success: false
+                    ratingDelta: 0
+                    isVictory: false
+                    newRating: 42
+                    error: Invalid move — tasks can only move one stage at a time.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /tasks/{taskId}/reorder:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    patch:
+      tags: [Tasks]
+      operationId: reorderTask
+      summary: Reorder a task within its stage
+      description: Changes only the task's position within its current stage and does not affect rating.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderTaskRequest'
+      responses:
+        '204':
+          description: Position updated. The response has no body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /player/stats:
+    get:
+      tags: [Player statistics]
+      operationId: getPlayerStats
+      summary: Get player statistics
+      description: Returns global rating information and aggregate task statistics for the authenticated user.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Player profile and statistics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: taskmate_session
+      description: Http-only session cookie issued by sign-up or login.
+  headers:
+    SessionCookie:
+      description: Http-only session cookie issued by the backend.
+      schema:
+        type: string
+    ClearedSessionCookie:
+      description: Expired session cookie clearing the current session.
+      schema:
+        type: string
+  parameters:
+    BoardId:
+      name: boardId
+      in: path
+      required: true
+      description: Board identifier.
+      schema:
+        type: string
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      description: Task identifier.
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Authentication is required or the session is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Authentication required.
+    ValidationError:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Request validation failed.
+    NotFound:
+      description: The requested resource does not exist or is not owned by the current user.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Resource not found.
+  schemas:
+    SignUpRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          description: Display name.
+          example: Ada Lovelace
+        email:
+          type: string
+          format: email
+          description: Account email address.
+          example: ada@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: Password; must be hashed by the backend and never stored as plaintext.
+          example: correct-horse-battery-staple
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: ada@example.com
+        password:
+          type: string
+          format: password
+          example: correct-horse-battery-staple
+    CreateBoardRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: Board name.
+          example: Work Projects
+    CreateTaskRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 120
+          example: Write API documentation
+        description:
+          type: string
+          description: Optional task context, links, or acceptance criteria.
+        priority:
+          $ref: '#/components/schemas/Priority'
+        dueDate:
+          type: string
+          format: date
+          description: Optional due date.
+          example: '2026-09-25'
+        tags:
+          type: array
+          items:
+            type: string
+          description: Optional free-form tags.
+          default: []
+    UpdateTaskRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 120
+        description:
+          type: string
+          description: Optional task context. Omit when unchanged.
+        priority:
+          $ref: '#/components/schemas/Priority'
+        dueDate:
+          type: string
+          format: date
+          description: Optional due date. Omit when unchanged.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Replaces the complete tag list.
+    MoveTaskRequest:
+      type: object
+      additionalProperties: false
+      required: [toStage, newPosition]
+      properties:
+        toStage:
+          $ref: '#/components/schemas/Stage'
+        newPosition:
+          type: integer
+          minimum: 0
+          description: Zero-based position in the destination stage.
+          example: 0
+    ReorderTaskRequest:
+      type: object
+      additionalProperties: false
+      required: [newPosition]
+      properties:
+        newPosition:
+          type: integer
+          minimum: 0
+          description: Zero-based position in the task's current stage.
+          example: 2
+    User:
+      type: object
+      additionalProperties: false
+      required: [id, name, email, rating, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          example: user-001
+        name:
+          type: string
+          example: Kasparov Dev
+        email:
+          type: string
+          format: email
+          example: kasparov@chesskanban.app
+        rating:
+          type: integer
+          minimum: 0
+          example: 42
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-08-01T10:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-09-11T19:00:00Z'
+    Board:
+      type: object
+      additionalProperties: false
+      required: [id, userId, name, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          example: board-001
+        userId:
+          type: string
+          example: user-001
+        name:
+          type: string
+          example: Work Projects
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-08-02T09:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-09-10T14:00:00Z'
+    Task:
+      type: object
+      additionalProperties: false
+      required: [id, boardId, title, tags, stage, position, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          example: task-001
+        boardId:
+          type: string
+          example: board-001
+        title:
+          type: string
+          example: Define Q4 product roadmap
+        description:
+          type: string
+          description: Optional task context.
+        priority:
+          $ref: '#/components/schemas/Priority'
+        dueDate:
+          type: string
+          format: date
+          description: Optional due date.
+          example: '2026-09-20'
+        tags:
+          type: array
+          items:
+            type: string
+          example: [Planning, Q4]
+        stage:
+          $ref: '#/components/schemas/Stage'
+        position:
+          type: integer
+          minimum: 0
+          description: Zero-based position within the current stage.
+          example: 0
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-08-10T09:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-09-09T14:00:00Z'
+    MoveResult:
+      type: object
+      additionalProperties: false
+      required: [success, ratingDelta, isVictory, newRating]
+      properties:
+        success:
+          type: boolean
+          description: False for a business-rule failure such as a non-adjacent move.
+        ratingDelta:
+          type: integer
+          enum: [-1, 0, 1]
+          description: Rating change caused by the move.
+        isVictory:
+          type: boolean
+          description: True only when the task moves from Queen to King.
+        newRating:
+          type: integer
+          minimum: 0
+          description: User's rating after the operation.
+        error:
+          type: string
+          description: Present when success is false.
+    AuthResult:
+      type: object
+      additionalProperties: false
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        user:
+          $ref: '#/components/schemas/User'
+        error:
+          type: string
+          description: Present when authentication fails.
+    PlayerStats:
+      type: object
+      additionalProperties: false
+      required: [user, totalCompleted, totalBoards, tasksByStage, recentMoves]
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        totalCompleted:
+          type: integer
+          minimum: 0
+          description: Number of tasks currently in the King stage.
+        totalBoards:
+          type: integer
+          minimum: 0
+        tasksByStage:
+          type: object
+          additionalProperties: false
+          required: [pawn, knight, bishop, rook, queen, king]
+          properties:
+            pawn:
+              type: integer
+              minimum: 0
+            knight:
+              type: integer
+              minimum: 0
+            bishop:
+              type: integer
+              minimum: 0
+            rook:
+              type: integer
+              minimum: 0
+            queen:
+              type: integer
+              minimum: 0
+            king:
+              type: integer
+              minimum: 0
+        recentMoves:
+          type: array
+          maxItems: 8
+          items:
+            $ref: '#/components/schemas/RecentMove'
+    RecentMove:
+      type: object
+      additionalProperties: false
+      required: [id, taskTitle, fromStage, toStage, ratingDelta, timestamp]
+      properties:
+        id:
+          type: string
+          example: move-001
+        taskTitle:
+          type: string
+          example: Portfolio auth system
+        fromStage:
+          $ref: '#/components/schemas/Stage'
+        toStage:
+          $ref: '#/components/schemas/Stage'
+        ratingDelta:
+          type: integer
+          enum: [-1, 0, 1]
+        timestamp:
+          type: string
+          format: date-time
+          example: '2026-09-09T17:00:00Z'
+    Stage:
+      type: string
+      enum: [pawn, knight, bishop, rook, queen, king]
+    Priority:
+      type: string
+      enum: [low, medium, high, critical]
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
