@@ -1,5 +1,7 @@
 """FastAPI application entry point."""
 
+import os
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,9 +19,18 @@ app = FastAPI(
 )
 app.state.store = InMemoryStore()
 
+cors_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "TASKMATE_CORS_ORIGINS",
+        "http://localhost:4028,http://127.0.0.1:4028,http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,4 +70,3 @@ app.include_router(auth.router)
 app.include_router(boards.router)
 app.include_router(tasks.router)
 app.include_router(stats.router)
-

@@ -21,11 +21,9 @@ export default function PlayerProfileScreen() {
   useEffect(() => {
     async function init() {
       try {
-        // Backend integration point: validate session
         const currentUser = await chessService.getCurrentUser();
         if (!currentUser) { router.push('/'); return; }
         setUser(currentUser);
-        // Backend integration point: fetch player stats
         const playerStats = await chessService.getPlayerStats();
         setStats(playerStats);
       } catch {

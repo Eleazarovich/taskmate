@@ -22,7 +22,6 @@ export default function CreateTaskModal({ boardId, onCreated, onClose }: CreateT
 
   const onSubmit = async (data: FormData) => {
     try {
-      // Backend integration point: create task via API
       const task = await chessService.createTask(boardId, data.title.trim());
       toast.success('Task added to Pawn / Backlog');
       onCreated(task);

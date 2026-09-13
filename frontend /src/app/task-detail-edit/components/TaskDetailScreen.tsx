@@ -46,8 +46,8 @@ export default function TaskDetailScreen() {
         setUser(currentUser);
 
         if (taskId) {
-          // Backend integration point: fetch task by ID
-          // For now, look up in mock data via all boards
+          // The service contract has no standalone task lookup endpoint, so
+          // locate the task through the authenticated board task lists.
           const boards = await chessService.getBoards();
           let found: Task | null = null;
           for (const board of boards) {
@@ -79,7 +79,6 @@ export default function TaskDetailScreen() {
     if (!task) return;
     const tags = data.tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
     try {
-      // Backend integration point: update task via API
       const updated = await chessService.updateTask(task.id, {
         title: data.title.trim(),
         description: data.description.trim() || undefined,

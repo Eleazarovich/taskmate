@@ -64,7 +64,6 @@ export default function AuthScreen() {
   const handleLogin = async (data: LoginForm) => {
     setIsSubmitting(true);
     try {
-      // Backend integration point: replace with real API call
       const result = await chessService.login(data.email, data.password);
       if (result.success && result.user) {
         setUser(result.user);
@@ -83,7 +82,6 @@ export default function AuthScreen() {
   const handleSignup = async (data: SignupForm) => {
     setIsSubmitting(true);
     try {
-      // Backend integration point: replace with real API call
       const result = await chessService.signUp(data.name, data.email, data.password);
       if (result.success && result.user) {
         setUser(result.user);

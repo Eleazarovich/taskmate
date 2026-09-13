@@ -3,11 +3,9 @@ info:
   title: Taskmate API
   version: 1.0.0
   description: |
-    HTTP contract for the backend expected by the Taskmate frontend.
-    It is derived from frontend /src/lib/services/IChessKanbanService.ts and
-    frontend /src/lib/types.ts. The checked-in frontend currently uses an
-    in-memory mock service, so these are the HTTP mappings for that service
-    boundary rather than literal URLs currently present in the frontend.
+    HTTP contract used by the Taskmate frontend.
+    It is implemented by frontend /src/lib/services/apiService.ts and is
+    configured with NEXT_PUBLIC_API_URL.
     Sign-up and login establish an http-only session cookie and return an
     opaque bearer access token. There is no standalone
     get-task operation in the service interface; task detail lookup uses the

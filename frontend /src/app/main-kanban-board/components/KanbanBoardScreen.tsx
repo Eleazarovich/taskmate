@@ -35,7 +35,6 @@ export default function KanbanBoardScreen() {
   useEffect(() => {
     async function init() {
       try {
-        // Backend integration point: check session/token
         const currentUser = await chessService.getCurrentUser();
         if (!currentUser) {
           router.push('/');
@@ -60,7 +59,6 @@ export default function KanbanBoardScreen() {
   useEffect(() => {
     if (!activeBoardId) return;
     setIsLoadingTasks(true);
-    // Backend integration point: fetch tasks for board
     chessService.getTasksByBoard(activeBoardId).then(boardTasks => {
       setTasks(boardTasks);
     }).catch(() => {

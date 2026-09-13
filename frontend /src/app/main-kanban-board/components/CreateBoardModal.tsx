@@ -29,7 +29,6 @@ export default function CreateBoardModal({ onCreated, onClose }: CreateBoardModa
 
   const onSubmit = async (data: FormData) => {
     try {
-      // Backend integration point: create board via API
       const board = await chessService.createBoard(data.name.trim());
       playSound('board-create');
       toast.success(`Board "${board.name}" created!`);

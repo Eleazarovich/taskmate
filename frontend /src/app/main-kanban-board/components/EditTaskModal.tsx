@@ -47,7 +47,6 @@ export default function EditTaskModal({ task, onSaved, onDeleted, onClose }: Edi
       .map(t => t.trim())
       .filter(Boolean);
     try {
-      // Backend integration point: update task via API
       const updated = await chessService.updateTask(task.id, {
         title: data.title.trim(),
         description: data.description.trim() || undefined,
@@ -65,7 +64,6 @@ export default function EditTaskModal({ task, onSaved, onDeleted, onClose }: Edi
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      // Backend integration point: delete task via API
       await chessService.deleteTask(task.id);
       toast.success('Task removed from board');
       onDeleted(task.id);

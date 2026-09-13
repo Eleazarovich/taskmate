@@ -44,6 +44,7 @@ export interface AuthResult {
   success: boolean;
   user?: User;
   error?: string;
+  accessToken?: string;
 }
 
 export interface PlayerStats {

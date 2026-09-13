@@ -97,7 +97,6 @@ export default function KanbanColumns({
     const newPosition = stageTasks.length;
 
     try {
-      // Backend integration point: persist stage move
       const result = await chessService.moveTask(activeTask.id, targetStage, newPosition);
       if (!result.success) {
         playSound('invalid-move');
