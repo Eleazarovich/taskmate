@@ -1,0 +1,12 @@
+.git
+.gitignore
+**/.env*
+**/node_modules
+**/.next
+**/out
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/*.db
+**/.pytest_cache
+*.log

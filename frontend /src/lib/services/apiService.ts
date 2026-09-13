@@ -11,7 +11,7 @@ import type {
 } from '../types';
 
 const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 ).replace(/\/$/, '');
 const ACCESS_TOKEN_KEY = 'taskmate_access_token';
 

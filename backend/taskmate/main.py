@@ -1,11 +1,13 @@
 """FastAPI application entry point."""
 
 import os
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from .models import ErrorResponse
 from .routers import auth, boards, stats, tasks
@@ -70,3 +72,9 @@ app.include_router(auth.router)
 app.include_router(boards.router)
 app.include_router(tasks.router)
 app.include_router(stats.router)
+
+# The production image copies the frontend's static export here. Keeping the
+# mount optional preserves the backend-only development and test workflow.
+frontend_dir = Path(__file__).resolve().parents[2] / "frontend"
+if frontend_dir.is_dir():
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")

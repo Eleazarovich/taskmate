@@ -89,6 +89,22 @@ The web app starts at <http://localhost:4028>.
 The frontend directory is currently named `frontend ` with a trailing space,
 so keep the quotes in the `cd` command.
 
+### Run as one container
+
+The Docker image builds the frontend as a static export and serves it from
+FastAPI alongside the API:
+
+```bash
+docker build -t taskmate .
+docker run --rm -p 8000:8000 \
+  -e TASKMATE_DATABASE_URL=sqlite:////data/taskmate.db \
+  -v taskmate-data:/data \
+  taskmate
+```
+
+Open <http://localhost:8000>. To use an API hosted at another origin, pass
+`--build-arg NEXT_PUBLIC_API_URL=https://api.example.com` to `docker build`.
+
 ### Demo account
 
 When the default database is empty, the backend seeds a local demo account:
