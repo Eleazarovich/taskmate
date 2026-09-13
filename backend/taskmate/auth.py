@@ -12,7 +12,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
 
 if TYPE_CHECKING:
-    from .store import InMemoryStore, UserRecord
+    from .store import DatabaseStore, UserRecord
 
 
 PASSWORD_ALGORITHM = "pbkdf2_sha256"
@@ -31,7 +31,7 @@ cookie_scheme = APIKeyCookie(
 )
 
 
-def get_store(request: Request) -> InMemoryStore:
+def get_store(request: Request) -> DatabaseStore:
     """Return the application store, allowing tests to replace it cleanly."""
 
     return request.app.state.store
@@ -84,7 +84,7 @@ def token_from_request(
 
 
 def optional_current_user(
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
     token: str | None = Depends(token_from_request),
 ) -> UserRecord | None:
     """Resolve an optional user, rejecting credentials that are no longer valid."""

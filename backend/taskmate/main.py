@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from .models import ErrorResponse
 from .routers import auth, boards, stats, tasks
-from .store import InMemoryStore
+from .store import DatabaseStore
 
 
 app = FastAPI(
@@ -17,7 +17,7 @@ app = FastAPI(
     version="1.0.0",
     description="Backend for the Taskmate chess-inspired personal kanban board.",
 )
-app.state.store = InMemoryStore()
+app.state.store = DatabaseStore()
 
 cors_origins = [
     origin.strip()

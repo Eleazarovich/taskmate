@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from ..auth import current_user, get_store
 from ..models import Board, CreateBoardRequest
-from ..store import InMemoryStore, UserRecord
+from ..store import DatabaseStore, UserRecord
 
 
 router = APIRouter(prefix="/boards", tags=["Boards"])
@@ -17,7 +17,7 @@ def not_found() -> HTTPException:
 @router.get("", response_model=list[Board])
 def get_boards(
     user: UserRecord = Depends(current_user),
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> list[Board]:
     return store.boards_for_user(user.id)
 
@@ -26,7 +26,7 @@ def get_boards(
 def create_board(
     request: CreateBoardRequest,
     user: UserRecord = Depends(current_user),
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> Board:
     return store.create_board(user.id, request.name)
 
@@ -35,9 +35,8 @@ def create_board(
 def delete_board(
     board_id: str,
     user: UserRecord = Depends(current_user),
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> Response:
     if not store.delete_board(board_id, user.id):
         raise not_found()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-

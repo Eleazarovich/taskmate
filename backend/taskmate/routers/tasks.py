@@ -11,7 +11,7 @@ from ..models import (
     Task,
     UpdateTaskRequest,
 )
-from ..store import InMemoryStore, TaskRecord, UserRecord
+from ..store import DatabaseStore, TaskRecord, UserRecord
 
 
 router = APIRouter(tags=["Tasks"])
@@ -22,7 +22,7 @@ def not_found() -> HTTPException:
 
 
 def owned_task_or_404(
-    task_id: str, user: UserRecord, store: InMemoryStore
+    task_id: str, user: UserRecord, store: DatabaseStore
 ) -> TaskRecord:
     task = store.get_task_for_user(task_id, user.id)
     if task is None:
@@ -30,7 +30,7 @@ def owned_task_or_404(
     return task
 
 
-def owned_board_or_404(board_id: str, user: UserRecord, store: InMemoryStore) -> None:
+def owned_board_or_404(board_id: str, user: UserRecord, store: DatabaseStore) -> None:
     if store.get_board_for_user(board_id, user.id) is None:
         raise not_found()
 
@@ -39,7 +39,7 @@ def owned_board_or_404(board_id: str, user: UserRecord, store: InMemoryStore) ->
 def get_tasks_by_board(
     board_id: str,
     user: UserRecord = Depends(current_user),
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> list[Task]:
     owned_board_or_404(board_id, user, store)
     return store.tasks_for_board(board_id, user.id)
@@ -55,7 +55,7 @@ def create_task(
     board_id: str,
     request: CreateTaskRequest,
     user: UserRecord = Depends(current_user),
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> Task:
     owned_board_or_404(board_id, user, store)
     return store.create_task(board_id, user.id, request)
@@ -68,7 +68,7 @@ def update_task(
     task_id: str,
     request: UpdateTaskRequest,
     user: UserRecord = Depends(current_user),
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> Task:
     task = owned_task_or_404(task_id, user, store)
     return store.update_task(task, request)
@@ -78,7 +78,7 @@ def update_task(
 def delete_task(
     task_id: str,
     user: UserRecord = Depends(current_user),
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> Response:
     task = owned_task_or_404(task_id, user, store)
     store.delete_task(task)
@@ -94,7 +94,7 @@ def move_task(
     task_id: str,
     request: MoveTaskRequest,
     user: UserRecord = Depends(current_user),
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> MoveResult:
     task = owned_task_or_404(task_id, user, store)
     success, rating_delta, is_victory, error = store.move_task(
@@ -114,7 +114,7 @@ def reorder_task(
     task_id: str,
     request: ReorderTaskRequest,
     user: UserRecord = Depends(current_user),
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> Response:
     task = owned_task_or_404(task_id, user, store)
     store.reorder_task(task, request.new_position)

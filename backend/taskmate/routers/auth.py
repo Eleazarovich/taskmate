@@ -12,7 +12,7 @@ from ..auth import (
     token_from_request,
 )
 from ..models import AuthResult, LoginRequest, SignUpRequest, User
-from ..store import InMemoryStore, UserRecord
+from ..store import DatabaseStore, UserRecord
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -47,7 +47,7 @@ def auth_failure(status_code: int, error: str) -> JSONResponse:
 def sign_up(
     request: SignUpRequest,
     response: Response,
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> AuthResult | JSONResponse:
     user = store.create_user(
         name=request.name,
@@ -74,7 +74,7 @@ def sign_up(
 def login(
     request: LoginRequest,
     response: Response,
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> AuthResult | JSONResponse:
     user = store.authenticate(str(request.email), request.password)
     if user is None:
@@ -89,7 +89,7 @@ def login(
 def logout(
     response: Response,
     token: str | None = Depends(token_from_request),
-    store: InMemoryStore = Depends(get_store),
+    store: DatabaseStore = Depends(get_store),
 ) -> Response:
     store.revoke_session(token)
     response.delete_cookie(key=SESSION_COOKIE, path="/")
@@ -102,4 +102,3 @@ def get_current_user(
     user: UserRecord | None = Depends(optional_current_user),
 ) -> User | None:
     return user.public() if user else None
-
