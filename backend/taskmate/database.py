@@ -1,8 +1,7 @@
 """SQLAlchemy database configuration and persistence models.
 
-The application only depends on SQLAlchemy's database-agnostic ORM layer. The
-database URL can therefore point at SQLite today and at another SQLAlchemy
-supported database, such as Postgres, later.
+SQLite remains the default for local development, while Postgres is supported
+through SQLAlchemy's psycopg 3 dialect in deployed environments.
 """
 
 from __future__ import annotations
@@ -18,6 +17,8 @@ from sqlalchemy.pool import StaticPool
 
 
 DEFAULT_DATABASE_URL = "sqlite:///./taskmate.db"
+POSTGRES_DRIVER = "postgresql+psycopg"
+POSTGRES_URL_SCHEMES = frozenset({"postgres", "postgresql"})
 
 
 class Base(DeclarativeBase):
@@ -100,12 +101,30 @@ def database_url_from_environment() -> str:
     )
 
 
+def normalize_database_url(database_url: str) -> str:
+    """Normalize common Postgres URLs to the installed psycopg 3 dialect.
+
+    SQLAlchemy treats ``postgresql://`` as an alias for the psycopg2 dialect,
+    while this application ships psycopg 3. Hosted database providers also
+    commonly still emit the legacy ``postgres://`` scheme. Supporting both
+    forms here keeps deployment configuration portable without requiring users
+    to know the SQLAlchemy driver suffix.
+    """
+
+    parsed_url = make_url(database_url)
+    if parsed_url.drivername in POSTGRES_URL_SCHEMES:
+        return parsed_url.set(drivername=POSTGRES_DRIVER).render_as_string(
+            hide_password=False
+        )
+    return database_url
+
+
 def create_database(
     database_url: str | None = None,
 ) -> tuple[Engine, sessionmaker]:
     """Create an engine and session factory for a SQLAlchemy database URL."""
 
-    url = database_url or database_url_from_environment()
+    url = normalize_database_url(database_url or database_url_from_environment())
     parsed_url = make_url(url)
     engine_options: dict[str, object] = {
         "future": True,

@@ -238,6 +238,11 @@ class DatabaseStore:
                 updated_at=parse_datetime("2026-09-11T19:00:00Z"),
             )
             session.add(user)
+            # Make the parent row visible before adding its foreign-key
+            # children. PostgreSQL enforces the constraint during flush,
+            # whereas SQLite's default foreign-key behavior can hide this
+            # ordering requirement.
+            session.flush()
 
             boards = [
                 ("board-001", "Work Projects", "2026-08-02T09:00:00Z", "2026-09-10T14:00:00Z"),

@@ -15,17 +15,26 @@ uv run uvicorn main:app --reload
 uv run pytest
 ```
 
-Set `TASKMATE_DATABASE_URL` to any SQLAlchemy database URL to select the
-database used by the server. `DATABASE_URL` is also accepted as a generic
-deployment convention. For example:
+Set `TASKMATE_DATABASE_URL` to select the database used by the server.
+`DATABASE_URL` is also accepted as a generic deployment convention. SQLite
+continues to be the default for local development:
 
 ```bash
 TASKMATE_DATABASE_URL=sqlite:///./local.db uv run uvicorn main:app --reload
 ```
 
-The schema is created automatically on startup. SQLAlchemy keeps the store
-database-agnostic, so a supported Postgres URL can be used later without
-changing the API or repository code.
+Postgres is supported through the bundled psycopg 3 driver. Standard
+`postgresql://` and legacy `postgres://` URLs are normalized automatically;
+`postgresql+psycopg://` is also accepted:
+
+```bash
+TASKMATE_DATABASE_URL=postgresql://taskmate:password@localhost:5432/taskmate \
+  uv run uvicorn main:app --reload
+```
+
+The schema is created automatically on startup for both SQLite and Postgres.
+SQLAlchemy keeps the store database-agnostic, so switching databases does not
+change the API or repository code.
 
 Interactive API documentation is available at `http://localhost:8000/docs`.
 Authentication accepts the HTTP-only `taskmate_session` cookie issued at
