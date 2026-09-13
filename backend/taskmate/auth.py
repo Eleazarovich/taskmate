@@ -9,7 +9,7 @@ import secrets
 from typing import TYPE_CHECKING
 
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
 
 if TYPE_CHECKING:
     from .store import InMemoryStore, UserRecord
@@ -18,7 +18,17 @@ if TYPE_CHECKING:
 PASSWORD_ALGORITHM = "pbkdf2_sha256"
 PASSWORD_ITERATIONS = 600_000
 SESSION_COOKIE = "taskmate_session"
-bearer_scheme = HTTPBearer(auto_error=False)
+bearer_scheme = HTTPBearer(
+    auto_error=False,
+    scheme_name="bearerToken",
+    description="Opaque bearer token returned by sign-up or login.",
+)
+cookie_scheme = APIKeyCookie(
+    name=SESSION_COOKIE,
+    auto_error=False,
+    scheme_name="sessionCookie",
+    description="Http-only session cookie issued by sign-up or login.",
+)
 
 
 def get_store(request: Request) -> InMemoryStore:
@@ -63,14 +73,14 @@ def verify_password(password: str, encoded_hash: str) -> bool:
 
 
 def token_from_request(
-    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    cookie: str | None = Depends(cookie_scheme),
 ) -> str | None:
     """Read bearer credentials first, with the spec's session cookie as fallback."""
 
     if credentials is not None:
         return credentials.credentials
-    return request.cookies.get(SESSION_COOKIE)
+    return cookie
 
 
 def optional_current_user(
