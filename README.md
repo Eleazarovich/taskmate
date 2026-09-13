@@ -162,6 +162,7 @@ If the frontend is hosted on a different origin, set both
 make install       # Install or update backend dependencies with uv
 make run           # Start FastAPI with reload enabled
 make test          # Run the backend test suite
+make integration-test  # Build Compose and run real HTTP/Postgres tests
 ```
 
 Equivalent commands from `backend/` are:
@@ -171,6 +172,22 @@ uv sync
 uv run uvicorn main:app --reload
 uv run pytest
 ```
+
+The integration suite starts the services from `docker-compose.yaml`, waits
+for both the database and app health checks, and runs against the published
+HTTP port. It uses a separate Compose project and removes its test volume when
+finished:
+
+```bash
+make integration-test
+```
+
+The scenarios cover the built frontend/API container, Postgres startup and
+seed data, cookie and bearer authentication, logout revocation, user
+ownership boundaries, board-delete task cascading, task CRUD and ordering,
+adjacent-stage movement, rating changes, invalid moves, and player stats.
+The movement journey also verifies a task can reach King and reports a
+victory.
 
 ### Frontend
 

@@ -23,7 +23,14 @@ services:
     environment:
       TASKMATE_DATABASE_URL: postgresql://taskmate:taskmate@postgres:5432/taskmate
     ports:
-      - "8000:8000"
+      - "${TASKMATE_APP_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/auth/me')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
 volumes:
   postgres-data:

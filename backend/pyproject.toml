@@ -21,3 +21,6 @@ dev = [
 testpaths = ["tests"]
 addopts = "-q"
 pythonpath = ["."]
+markers = [
+    "integration: tests that require the Docker Compose application stack",
+]
