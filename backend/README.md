@@ -10,11 +10,10 @@ From this directory:
 
 ```bash
 uv sync
-uv run uvicorn taskmate.main:app --reload
+uv run uvicorn main:app --reload
 uv run pytest
 ```
 
 Interactive API documentation is available at `http://localhost:8000/docs`.
 Authentication accepts the HTTP-only `taskmate_session` cookie issued at
 signup/login or an `Authorization: Bearer <accessToken>` header.
-
