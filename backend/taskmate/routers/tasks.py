@@ -85,7 +85,11 @@ def delete_task(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.patch("/tasks/{task_id}/move", response_model=MoveResult)
+@router.patch(
+    "/tasks/{task_id}/move",
+    response_model=MoveResult,
+    response_model_exclude_none=True,
+)
 def move_task(
     task_id: str,
     request: MoveTaskRequest,
@@ -115,4 +119,3 @@ def reorder_task(
     task = owned_task_or_404(task_id, user, store)
     store.reorder_task(task, request.new_position)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
