@@ -14,12 +14,23 @@ from .routers import auth, boards, stats, tasks
 from .store import DatabaseStore
 
 
+def environment_flag(name: str, *, default: bool) -> bool:
+    """Read a boolean environment variable with a predictable fallback."""
+
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 app = FastAPI(
     title="Taskmate API",
     version="1.0.0",
     description="Backend for the Taskmate chess-inspired personal kanban board.",
 )
-app.state.store = DatabaseStore()
+app.state.store = DatabaseStore(
+    seed=environment_flag("TASKMATE_SEED_DEMO", default=True)
+)
 
 cors_origins = [
     origin.strip()

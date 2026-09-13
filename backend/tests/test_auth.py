@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from taskmate.main import app
+from taskmate.routers.auth import set_session_cookie
 
 
 def test_me_is_public_but_protected_resources_require_auth(client: TestClient) -> None:
@@ -29,6 +30,17 @@ def test_seeded_login_sets_cookie_and_returns_bearer_token(client: TestClient) -
     seeded_record = app.state.store.users["user-001"]
     assert seeded_record.password_hash != "KingMe2026!"
     assert "KingMe2026!" not in seeded_record.password_hash
+
+
+def test_session_cookie_can_be_marked_secure(monkeypatch) -> None:
+    monkeypatch.setenv("TASKMATE_SECURE_COOKIES", "true")
+
+    from fastapi import Response
+
+    response = Response()
+    set_session_cookie(response, "test-token")
+
+    assert "Secure" in response.headers["set-cookie"]
 
 
 def test_bearer_token_authenticates_without_cookie(

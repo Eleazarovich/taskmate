@@ -43,4 +43,7 @@ signup/login or an `Authorization: Bearer <accessToken>` header.
 The frontend uses `http://localhost:8000` by default. Set
 `NEXT_PUBLIC_API_URL` when it is hosted elsewhere, and set
 `TASKMATE_CORS_ORIGINS` to a comma-separated list of allowed frontend origins
-for deployments.
+for deployments. The local demo account is seeded by default; set
+`TASKMATE_SEED_DEMO=false` for a deployed instance and create the first
+account through the sign-up screen instead. Set
+`TASKMATE_SECURE_COOKIES=true` when the application is served over HTTPS.

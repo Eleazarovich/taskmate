@@ -133,6 +133,8 @@ variables when changing the default setup:
 | `TASKMATE_DATABASE_URL` | Backend | `sqlite:///./taskmate.db` | Primary database URL |
 | `DATABASE_URL` | Backend | — | Generic fallback database URL |
 | `TASKMATE_CORS_ORIGINS` | Backend | Local frontend origins | Comma-separated allowed browser origins |
+| `TASKMATE_SEED_DEMO` | Backend | `true` | Seed the local demo account and sample data when the database is empty |
+| `TASKMATE_SECURE_COOKIES` | Backend | `false` | Mark the session cookie as HTTPS-only; set to `true` in production |
 
 For example, to run the backend against a separate local SQLite file:
 

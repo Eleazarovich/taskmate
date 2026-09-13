@@ -1,5 +1,7 @@
 """Authentication endpoints."""
 
+import os
+
 from fastapi import APIRouter, Depends, Response, status
 from fastapi.responses import JSONResponse
 
@@ -18,13 +20,24 @@ from ..store import DatabaseStore, UserRecord
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
+def production_cookies_enabled() -> bool:
+    """Return whether session cookies should only be sent over HTTPS."""
+
+    return os.getenv("TASKMATE_SECURE_COOKIES", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def set_session_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key=SESSION_COOKIE,
         value=token,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=production_cookies_enabled(),
         max_age=60 * 60 * 24 * 7,
         path="/",
     )
