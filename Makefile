@@ -1,10 +1,11 @@
-.PHONY: install run test integration-test help
+.PHONY: install run test integration-test e2e help
 
 help:
 	@echo "make install  Install backend dependencies"
 	@echo "make run      Start the FastAPI development server"
 	@echo "make test     Run the backend test suite"
 	@echo "make integration-test  Run HTTP tests against Docker Compose"
+	@echo "make e2e      Run the Playwright suite against Docker Compose"
 
 install:
 	cd backend && uv sync
@@ -24,3 +25,8 @@ integration-test:
 		docker compose down -v --remove-orphans; \
 		TASKMATE_APP_PORT=$$app_port docker compose up -d --build --wait; \
 		(cd backend && TASKMATE_API_URL=http://127.0.0.1:$$app_port uv run pytest tests/integration -m integration)
+
+e2e:
+	cd e2e && npm ci
+	cd e2e && npx playwright install chromium
+	cd e2e && npm test
