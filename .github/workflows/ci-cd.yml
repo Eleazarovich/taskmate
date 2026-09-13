@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '22'
-  PYTHON_VERSION: '3.12'
+  NODE_VERSION: "22"
+  PYTHON_VERSION: "3.12"
 
 jobs:
   backend-tests:
@@ -75,10 +75,10 @@ jobs:
 
     env:
       COMPOSE_PROJECT_NAME: taskmate-ci
-      TASKMATE_APP_PORT: '8001'
+      TASKMATE_APP_PORT: "8001"
       TASKMATE_API_URL: http://127.0.0.1:8001
       TASKMATE_E2E_BASE_URL: http://127.0.0.1:8001
-      TASKMATE_E2E_EXTERNAL_STACK: 'true'
+      TASKMATE_E2E_EXTERNAL_STACK: "true"
 
     steps:
       - name: Check out repository
