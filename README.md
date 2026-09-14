@@ -160,12 +160,24 @@ If the frontend is hosted on a different origin, set both
 
 GitHub Actions runs the backend and frontend test jobs in parallel, then builds
 the Docker Compose stack and runs the integration and Playwright suites against
-it. On pushes to `main`, the workflow triggers Render with the
-`RENDER_DEPLOY_HOOK_URL` repository secret and polls `<service-url>/health`
-until it returns HTTP 200.
+it. On pushes to `main`, the `deploy` job first triggers Render with a deploy
+hook, then polls `<service-url>/health` every 10 seconds until it returns HTTP
+200. The health check makes up to 30 attempts.
 
-Configure `RENDER_SERVICE_URL` as a repository variable alongside the deploy
-hook secret so the post-deploy health check knows which live service to poll.
+Configure the following values in the repository's **Settings → Secrets and
+variables → Actions** page:
+
+| Name | GitHub location | Value |
+| --- | --- | --- |
+| `RENDER_DEPLOY_HOOK_URL` | Repository secret | The secret deploy hook URL copied from the Render service's **Settings → Deploy Hook** section |
+| `RENDER_SERVICE_URL` | Repository variable | The public Render service URL, such as `https://taskmate-abc123.onrender.com` |
+
+Keep `RENDER_DEPLOY_HOOK_URL` as a secret. `RENDER_SERVICE_URL` is a regular
+variable because it is only used to identify the public service for the health
+check and GitHub deployment link. Do not append `/health` to its value; the
+workflow adds that path automatically. Verify that
+`https://<service>.onrender.com/health` returns HTTP 200 before rerunning a
+failed deployment.
 
 ## Development commands
 
